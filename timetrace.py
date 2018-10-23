@@ -64,9 +64,42 @@ class SingleTrace:
 		out_trace = SingleTrace(out_data, self.name+'_sub')
 		return out_trace
 	
-	def abs(self, y):
-		self.signal_real = np.abs(self.signal_real)
-		self.signal_imag = np.abs(self.signal_imag)
+	def abs(self):
+		n_points = self.time.size
+		out_data = np.zeros((n_points, 4), dtype=np.float_)
+		out_data[:, 0] = self.time
+		out_data[:, 1] = np.abs(self.signal_real)
+		out_data[:, 2] = np.abs(self.signal_imag)
+		out_data[:, 3] = self.stage_pos
+		out_trace = SingleTrace(out_data, self.name+'_abs')
+		return out_trace
+	
+	def mean(self, type='r'):
+		if type == 'r':
+			out_value = np.mean(self.signal_real)
+		elif type == 'i':
+			out_value = np.mean(self.signal_imag)
+		else:
+			raise(RuntimeError('Type not defined'))
+		return out_value
+	
+	def max(self, type='r'):
+		if type == 'r':
+			out_value = np.amax(self.signal_real)
+		elif type == 'i':
+			out_value = np.amax(self.signal_imag)
+		else:
+			raise(RuntimeError('Type not defined'))
+		return out_value
+	
+	def min(self, type='r'):
+		if type == 'r':
+			out_value = np.amin(self.signal_real)
+		elif type == 'i':
+			out_value = np.amin(self.signal_imag)
+		else:
+			raise(RuntimeError('Type not defined'))
+		return out_value
 	
 	def normalize(self, y):
 		out_data = np.zeros((self.time.size, 4), dtype=np.float_)
@@ -74,11 +107,33 @@ class SingleTrace:
 		out_data[:, 1] = self.signal_real/y
 		out_data[:, 2] = self.signal_imag/y
 		out_data[:, 3] = self.stage_pos
-		out_trace = SingleTrace(out_data, self.name+'_rsc_{:.2f}'.format(y))
+		out_trace = SingleTrace(out_data, self.name+'_norm_{:.2f}'.format(y))
 		return out_trace
 	
 	def shift_time(self, t_offset):
 		self.time += t_offset
+	
+	def shift_trace(self, y_offset, type='r'):
+		if type == 'r':
+			self.signal_real += y_offset
+		elif type == 'i':
+			self.signal_imag += y_offset
+		else:
+			raise(RuntimeError('Type not defined'))
+	
+	def crop(self, limits=(0,)):
+		if len(limits) == 1:
+			filter = self.time >= limits[0]
+		else:
+			filter = np.logical_and(self.time >= limits[0], self.time < limits[1])
+		n_points = self.time[filter].size
+		out_data = np.zeros((n_points, 4), dtype=np.float_)
+		out_data[:, 0] = self.time[filter]
+		out_data[:, 1] = self.signal_real[filter]
+		out_data[:, 2] = self.signal_imag[filter]
+		out_data[:, 3] = self.stage_pos[filter]
+		out_trace = SingleTrace(out_data, self.name+'_crop')
+		return out_trace
 	
 	#Quick method for plotting real and imaginary parts of a single trace
 	def plot(self, type='t'):
@@ -192,21 +247,6 @@ def average_traces(traces_list):
 			out_data[:, 2] += traces_list[i].signal_imag
 			out_data[:, 3] += traces_list[i].stage_pos
 	out_trace = SingleTrace(out_data/n_traces, 'avg_{:d}'.format(n_traces))
-	return out_trace
-
-#Crop the "in_trace" trace	
-def crop_trace(in_trace, limits=(0,)):
-	if len(limits) == 1:
-		filter = in_trace.time >= limits[0]
-	else:
-		filter = np.logical_and(data_x >= limits[0], data_x < limits[1])
-	n_points = in_trace.time[filter].size
-	out_data = np.zeros((n_points, 4), dtype=np.float_)
-	out_data[:, 0] = in_trace.time[filter]
-	out_data[:, 1] = in_trace.signal_real[filter]
-	out_data[:, 2] = in_trace.signal_imag[filter]
-	out_data[:, 3] = in_trace.stage_pos[filter]
-	out_trace = SingleTrace(out_data, in_trace.name+'_crop')
 	return out_trace
 
 #Get the selected file's path in a string
