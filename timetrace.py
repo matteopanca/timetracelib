@@ -64,11 +64,15 @@ class SingleTrace:
 		out_trace = SingleTrace(out_data, self.name+'_sub')
 		return out_trace
 	
-	def rescale(self, y):
+	def abs(self, y):
+		self.signal_real = np.abs(self.signal_real)
+		self.signal_imag = np.abs(self.signal_imag)
+	
+	def normalize(self, y):
 		out_data = np.zeros((self.time.size, 4), dtype=np.float_)
 		out_data[:, 0] = self.time
-		out_data[:, 1] = y*self.signal_real
-		out_data[:, 2] = y*self.signal_imag
+		out_data[:, 1] = self.signal_real/y
+		out_data[:, 2] = self.signal_imag/y
 		out_data[:, 3] = self.stage_pos
 		out_trace = SingleTrace(out_data, self.name+'_rsc_{:.2f}'.format(y))
 		return out_trace
