@@ -18,6 +18,47 @@ def fit_coshFunc(x, a, b, c, d, e, f):
 	return (a*np.cos(2*np.pi*b*(x+c))/np.cosh((x-f)/e) + d)
 
 #----- SingleTrace class -----
+class HystLoop:
+	def __init__(self, data, name=''):
+		if data.shape[1] == 4:
+			n_points = data.shape[0]
+			index_a0 = 0
+			index_a1 = 1
+			index_b0 = 2
+			index_b1 = 3
+		else:
+			index_a0 = 0
+			index_a1 = 1
+			index_b0 = 0
+			index_b1 = 1
+			if data.shape[0]%2 == 0:
+				n_points = int(np.round(data.shape[0]/2))
+			else:
+				n_points = int(np.ceil(data.shape[0]/2))
+		self.field = np.zeros((n_points, 2), dtype=np.float_)
+		self.magn = np.zeros((n_points, 2), dtype=np.float_)
+		self.field[:, 0] = data[:n_points, index_a0] #first branch
+		self.magn[:, 0] = data[:n_points, index_a1] #first branch
+		self.field[:, 1] = data[-n_points:, index_b0] #second branch
+		self.magn[:, 1] = data[-n_points:, index_b1] #second branch
+		self.name = name
+	
+	def plot(self):
+		font_size = 18
+		fig1 = plt.figure(figsize=figsize_single)
+		ax1 = fig1.add_subplot(1,1,1)
+		ax1.plot(self.field[:, 0], self.magn[:, 0], '-ok', markersize=2)
+		ax1.plot(self.field[:, 1], self.magn[:, 1], '-or', markersize=2)
+		ax1.set_xlabel('Field', fontsize=font_size)
+		ax1.set_ylabel('Signal', fontsize=font_size)
+		ax1.set_title(self.name, fontsize=font_size+2)
+		ax1.tick_params(axis='both', labelsize=font_size)
+		ax1.grid(True)
+		fig1.tight_layout()
+		plt.show()
+		# return fig1
+
+#----- SingleTrace class -----
 class SingleTrace:
 	def __init__(self, file_name, header_lines):
 		if type(file_name) == np.ndarray:
@@ -26,7 +67,7 @@ class SingleTrace:
 			self.constructor_file(file_name, header_lines)
 	
 	def constructor_file(self, file_name, header_lines):
-		data = np.genfromtxt(file_name, skip_header=header_lines)
+		data = np.genfromtxt(file_name, dtype=np.float_, skip_header=header_lines)
 		self.name = file_name
 		self.time = data[:, 0]
 		self.signal_real = data[:, 1]
