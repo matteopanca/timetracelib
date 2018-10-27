@@ -17,22 +17,22 @@ def fit_expFunc(x, a, b, c, d, e):
 def fit_coshFunc(x, a, b, c, d, e, f):
 	return (a*np.cos(2*np.pi*b*(x+c))/np.cosh((x-f)/e) + d)
 
-#----- SingleTrace class -----
+#----- HystLoop class -----
 class HystLoop:
 	def __init__(self, data, name=''):
 		if data.shape[1] == 4:
-			n_points = data.shape[0]
 			index_a0 = 0
 			index_a1 = 1
 			index_b0 = 2
 			index_b1 = 3
+			n_points = data.shape[0]
 		else:
 			index_a0 = 0
 			index_a1 = 1
 			index_b0 = 0
 			index_b1 = 1
 			if data.shape[0]%2 == 0:
-				n_points = int(np.round(data.shape[0]/2))
+				n_points = int(data.shape[0]/2)
 			else:
 				n_points = int(np.ceil(data.shape[0]/2))
 		self.field = np.zeros((n_points, 2), dtype=np.float_)
@@ -42,6 +42,55 @@ class HystLoop:
 		self.field[:, 1] = data[-n_points:, index_b0] #second branch
 		self.magn[:, 1] = data[-n_points:, index_b1] #second branch
 		self.name = name
+	
+	def mean(self, n_points=-1):
+		if n_points == -1:
+			out_value = np.mean(self.magn)
+		else:
+			if n_points > self.field.shape[0]:
+				raise RuntimeError('Too many points for the mean value')
+			else:
+				data_to_consider = np.zeros((n_points, 4), dtype=np.float_)
+				data_to_consider[:, 0:2] = self.magn[:n_points, 0:2]
+				data_to_consider[:, 2:4] = self.magn[-n_points:, 0:2]
+				out_value = np.mean(data_to_consider)
+		return out_value
+	
+	def amp(self, n_points):
+		if n_points > self.field.shape[0]:
+			raise RuntimeError('Too many points for the mean value')
+		else:
+			data_to_consider = np.zeros((n_points, 4), dtype=np.float_)
+			data_to_consider[:, 0] = self.magn[:n_points, 0]
+			data_to_consider[:, 1] = self.magn[-n_points:, 1]
+			data_to_consider[:, 2] = self.magn[-n_points:, 0]
+			data_to_consider[:, 3] = self.magn[:n_points, 1]
+			out_value = np.abs(np.mean(data_to_consider[:, 0:2]) - np.mean(data_to_consider[:, 2:4]))/2
+		return out_value
+	
+	def center(self, n_points=-1):
+		mean_value = self.mean(n_points)
+		out_data = np.zeros((self.field.shape[0], 4), dtype=np.float_)
+		out_data[:, 0] = self.field[:, 0]
+		out_data[:, 1] = self.magn[:, 0] - mean_value
+		out_data[:, 2] = self.field[:, 1]
+		out_data[:, 3] = self.magn[:, 1] - mean_value
+		out_trace = SingleTrace(out_data, self.name+'_center_{:d}'.format(n_points))
+		return out_trace
+	
+	def normalize(self, n_points, my_value=None):
+		mean_value = self.mean(n_points)
+		if my_value is not None:
+			amp_value = my_value
+		else:
+			amp_value = self.amp(n_points)
+		out_data = np.zeros((self.field.shape[0], 4), dtype=np.float_)
+		out_data[:, 0] = self.field[:, 0]
+		out_data[:, 1] = (self.magn[:, 0] - mean_value)/amp_value
+		out_data[:, 2] = self.field[:, 1]
+		out_data[:, 3] = (self.magn[:, 1] - mean_value)/amp_value
+		out_trace = SingleTrace(out_data, self.name+'_norm_{:.2f}'.format(amp_value))
+		return out_trace
 	
 	def plot(self):
 		font_size = 18
@@ -57,6 +106,46 @@ class HystLoop:
 		fig1.tight_layout()
 		plt.show()
 		# return fig1
+	
+	def export(self, out_name):
+		n_points = self.field.shape[0]
+		data_to_save = np.zeros((2*n_points, 2), dtype=np.float_)
+		data_to_save[:n_points, 0] = self.field[:, 0]
+		data_to_save[-n_points:, 0] = self.field[:, 1]
+		data_to_save[:n_points, 1] = self.magn[:, 0]
+		data_to_save[-n_points:, 1] = self.magn[:, 1]
+		np.savetxt(out_name, data_to_save, fmt='%.6e', delimiter='\t')
+		print('Exported file for ' + self.name)
+#-----------------------------
+
+#Open multiple data files
+def open_loop(file_name, n_loops=1):
+	data = np.genfromtxt(file_name, dtype=np.float_)
+	if data.shape[0]%n_loops != 0:
+		raise RuntimeError('Wrong number of loops')
+	else:
+		n_points = int(data.shape[0]/n_loops)
+	
+	loops_list = []
+	for i in range(n_loops):
+		loops_list.append(HystLoop(data[i*n_points:(i+1)*n_points, :], file_name+'_{:d}'.format(i)))
+	return loops_list
+
+#Average the loops contained in loops_list
+def average_loops(loops_list):
+	n_loops = len(loops_list)
+	n_points = loops_list[0].field.shape[0]
+	out_data = np.zeros((n_points, 4), dtype=np.float_)
+	for i in range(n_loops):
+		if loops_list[i].field.shape[0] != n_points:
+			raise(RuntimeError('Wrong number of points at loop {:d}'.format(i)))
+		else:
+			out_data[:, 0] += loops_list[i].field[:, 0]
+			out_data[:, 1] += loops_list[i].magn[:, 0]
+			out_data[:, 2] += loops_list[i].field[:, 1]
+			out_data[:, 3] += loops_list[i].magn[:, 1]
+	out_loop = HystLoop(out_data/n_loops, 'avg_{:d}'.format(n_loops))
+	return out_loop
 
 #----- SingleTrace class -----
 class SingleTrace:
@@ -176,35 +265,6 @@ class SingleTrace:
 		out_trace = SingleTrace(out_data, self.name+'_crop')
 		return out_trace
 	
-	#Quick method for plotting real and imaginary parts of a single trace
-	def plot(self, type='t'):
-		font_size = 18
-		if type == 't':
-			x_label = 't (ps)'
-			x_to_plot = self.time
-		elif type == 'p':
-			x_label = 'Stage pos. (mm)'
-			x_to_plot = self.stage_pos
-		else:
-			raise RuntimeError('Type not defined')
-		fig1 = plt.figure(figsize=figsize_single)
-		ax1 = fig1.add_subplot(1,2,1)
-		ax1.plot(x_to_plot, self.signal_real, '-ok', markersize=3)
-		ax1.set_xlabel(x_label, fontsize=font_size)
-		ax1.set_ylabel('Real signal', fontsize=font_size)
-		ax1.tick_params(axis='both', labelsize=font_size)
-		ax1.grid(True)
-		ax2 = fig1.add_subplot(1,2,2)
-		ax2.plot(x_to_plot, self.signal_imag, '-or', markersize=3)
-		ax2.set_xlabel(x_label, fontsize=font_size)
-		ax2.set_ylabel('Imaginary signal', fontsize=font_size)
-		ax2.tick_params(axis='both', labelsize=font_size)
-		ax2.grid(True)
-		# fig1.suptitle('Trace n. {:d}'.format(self.index), fontsize=font_size+2)
-		fig1.tight_layout()
-		plt.show()
-		# return fig1
-	
 	#Fitting method - type[0] contains the signal ('r' or 'i') and type[1] contains the function ('e' or 'c') 
 	def fit_damping(self, type, p0_list, fix_relaxation=False):
 		if type[0] == 'r':
@@ -253,6 +313,35 @@ class SingleTrace:
 		
 		return f, fft_amplitude, fft_phase
 	
+	#Quick method for plotting real and imaginary parts of a single trace
+	def plot(self, type='t'):
+		font_size = 18
+		if type == 't':
+			x_label = 't (ps)'
+			x_to_plot = self.time
+		elif type == 'p':
+			x_label = 'Stage pos. (mm)'
+			x_to_plot = self.stage_pos
+		else:
+			raise RuntimeError('Type not defined')
+		fig1 = plt.figure(figsize=figsize_single)
+		ax1 = fig1.add_subplot(1,2,1)
+		ax1.plot(x_to_plot, self.signal_real, '-ok', markersize=3)
+		ax1.set_xlabel(x_label, fontsize=font_size)
+		ax1.set_ylabel('Real signal', fontsize=font_size)
+		ax1.tick_params(axis='both', labelsize=font_size)
+		ax1.grid(True)
+		ax2 = fig1.add_subplot(1,2,2)
+		ax2.plot(x_to_plot, self.signal_imag, '-or', markersize=3)
+		ax2.set_xlabel(x_label, fontsize=font_size)
+		ax2.set_ylabel('Imaginary signal', fontsize=font_size)
+		ax2.tick_params(axis='both', labelsize=font_size)
+		ax2.grid(True)
+		# fig1.suptitle('Trace n. {:d}'.format(self.index), fontsize=font_size+2)
+		fig1.tight_layout()
+		plt.show()
+		# return fig1
+	
 	def export(self, out_name):
 		data_to_save = np.zeros((self.time.size, 4), dtype=np.float_)
 		data_to_save[:, 0] = self.time
@@ -277,10 +366,10 @@ def open_multiple(input_folder, base_name, extension, header_lines=7):
 #Average the traces contained in traces_list
 def average_traces(traces_list):
 	n_traces = len(traces_list)
-	n_points = traces_list[0].time.shape[0]
+	n_points = traces_list[0].time.size
 	out_data = np.zeros((n_points, 4), dtype=np.float_)
 	for i in range(n_traces):
-		if traces_list[i].time.shape[0] != n_points:
+		if traces_list[i].time.size != n_points:
 			raise(RuntimeError('Wrong number of points at trace {:d}'.format(i)))
 		else:
 			out_data[:, 0] += traces_list[i].time
