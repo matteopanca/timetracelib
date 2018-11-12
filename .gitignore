@@ -1,1 +1,4 @@
-__pycache__/
+dist/
+build/
+timetrace/__pycache__/
+MANIFEST
