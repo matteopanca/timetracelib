@@ -180,31 +180,32 @@ class SingleTrace:
 		
 		return f, fft_amplitude, fft_phase
 	
-	#Quick method for plotting real and imaginary parts of a single trace
-	def plot(self, type='t'):
+	#Quick method for plotting real or imaginary parts of a single trace
+	def plot(self, type='tr', color='k'):
 		font_size = 18
-		if type == 't':
+		if type[0] == 't':
 			x_label = 't (ps)'
 			x_to_plot = self.time
-		elif type == 'p':
+		elif type[0] == 'p':
 			x_label = 'Stage pos. (mm)'
 			x_to_plot = self.stage_pos
 		else:
 			raise RuntimeError('Type not defined')
+		if type[1] == 'r':
+			y_label = 'X channel'
+			y_to_plot = self.signal_real
+		elif type[1] == 'i':
+			y_label = 'Y channel'
+			y_to_plot = self.signal_imag
+		else:
+			raise RuntimeError('Type not defined')
 		fig1 = plt.figure(figsize=figsize_single)
-		ax1 = fig1.add_subplot(1,2,1)
-		ax1.plot(x_to_plot, self.signal_real, '-ok', markersize=3)
+		ax1 = fig1.add_subplot(1,1,1)
+		ax1.plot(x_to_plot, y_to_plot, '-o', color=color, markersize=3)
 		ax1.set_xlabel(x_label, fontsize=font_size)
-		ax1.set_ylabel('Real signal', fontsize=font_size)
+		ax1.set_ylabel(y_label, fontsize=font_size)
 		ax1.tick_params(axis='both', labelsize=font_size)
 		ax1.grid(True)
-		ax2 = fig1.add_subplot(1,2,2)
-		ax2.plot(x_to_plot, self.signal_imag, '-or', markersize=3)
-		ax2.set_xlabel(x_label, fontsize=font_size)
-		ax2.set_ylabel('Imaginary signal', fontsize=font_size)
-		ax2.tick_params(axis='both', labelsize=font_size)
-		ax2.grid(True)
-		# fig1.suptitle('Trace n. {:d}'.format(self.index), fontsize=font_size+2)
 		fig1.tight_layout()
 		plt.show()
 		# return fig1
