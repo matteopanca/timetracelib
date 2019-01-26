@@ -143,9 +143,9 @@ class HystLoop:
 			pErr_out.append(np.sqrt(np.diag(pcov)))
 		return fit_res, pOpt_out, pErr_out
 	
-	def plot(self, fit_res=None):
+	def plot(self, fit_res=None, size=figsize_single):
 		font_size = 18
-		fig1 = plt.figure(figsize=figsize_single)
+		fig1 = plt.figure(figsize=size)
 		ax1 = fig1.add_subplot(1,1,1)
 		ax1.plot(self.field[:, 0], self.magn[:, 0], '--ok', markersize=4, label='Branch 0')
 		ax1.plot(self.field[:, 1], self.magn[:, 1], '--or', markersize=4, label='Branch 1')

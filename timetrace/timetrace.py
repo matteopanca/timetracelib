@@ -181,7 +181,7 @@ class SingleTrace:
 		return f, fft_amplitude, fft_phase
 	
 	#Quick method for plotting real or imaginary parts of a single trace
-	def plot(self, type='tr', color='k'):
+	def plot(self, type='tr', color='k', size=figsize_single):
 		font_size = 18
 		if type[0] == 't':
 			x_label = 't (ps)'
@@ -199,7 +199,7 @@ class SingleTrace:
 			y_to_plot = self.signal_imag
 		else:
 			raise RuntimeError('Type not defined')
-		fig1 = plt.figure(figsize=figsize_single)
+		fig1 = plt.figure(figsize=size)
 		ax1 = fig1.add_subplot(1,1,1)
 		ax1.plot(x_to_plot, y_to_plot, '-o', color=color, markersize=3)
 		ax1.set_xlabel(x_label, fontsize=font_size)
