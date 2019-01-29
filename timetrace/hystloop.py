@@ -46,6 +46,7 @@ class HystLoop:
 		self.field = new_field
 		if unit is not None:
 			self.unit[0] = unit
+		return self
 	
 	def mean(self, n_points=-1):
 		if type(n_points) == tuple:

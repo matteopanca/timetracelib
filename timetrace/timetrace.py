@@ -109,6 +109,7 @@ class SingleTrace:
 	
 	def shift_time(self, t_offset):
 		self.time += t_offset
+		return self
 	
 	def shift_trace(self, y_offset, type='r'):
 		if type == 'r':
@@ -117,6 +118,17 @@ class SingleTrace:
 			self.signal_imag += y_offset
 		else:
 			raise(RuntimeError('Type not defined'))
+		return self
+	
+	def zero_trace(self, limits, type='r'):
+		filter = np.logical_and(self.time >= limits[0], self.time < limits[1])
+		if type == 'r':
+			value_to_shift = -np.mean(self.signal_real[filter])
+		elif type == 'i':
+			value_to_shift = -np.mean(self.signal_imag[filter])
+		else:
+			raise(RuntimeError('Type not defined'))
+		return self.shift_trace(value_to_shift, type)
 	
 	def crop(self, limits=(0,)):
 		if len(limits) == 1:
@@ -221,13 +233,13 @@ class SingleTrace:
 #-----------------------------
 
 #Open multiple data files
-def open_multiple(input_folder, base_name, extension, header_lines=7):
+def open_multiple(input_folder, base_name, extension, header_lines=4):
 	file_list = os.listdir(input_folder)
 	traces_list = []
 	for f in file_list:
 		file_name, file_extension = os.path.splitext(f)
 		if file_name.startswith(base_name) and file_extension == extension:
-			print(f)
+			# print(f)
 			traces_list.append(SingleTrace(input_folder+f, header_lines))
 	return traces_list
 
