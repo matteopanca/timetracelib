@@ -61,6 +61,29 @@ class SingleTrace:
 		out_trace = SingleTrace(out_data, self.name+'_sub')
 		return out_trace
 	
+	def __pow__(self, y):
+		n_points = self.time.size
+		out_data = np.zeros((n_points, 4), dtype=np.float_)
+		out_data[:, 0] = self.time
+		out_data[:, 1] = self.signal_real**y
+		out_data[:, 2] = self.signal_imag**y
+		out_data[:, 3] = self.stage_pos
+		out_trace = SingleTrace(out_data, self.name+'_pow')
+		return out_trace
+	
+	def len(self):
+		return self.time.size
+	
+	def sqrt(self):
+		n_points = self.time.size
+		out_data = np.zeros((n_points, 4), dtype=np.float_)
+		out_data[:, 0] = self.time
+		out_data[:, 1] = np.sqrt(self.signal_real)
+		out_data[:, 2] = np.sqrt(self.signal_imag)
+		out_data[:, 3] = self.stage_pos
+		out_trace = SingleTrace(out_data, self.name+'_sqrt')
+		return out_trace
+	
 	def abs(self):
 		n_points = self.time.size
 		out_data = np.zeros((n_points, 4), dtype=np.float_)
@@ -130,11 +153,17 @@ class SingleTrace:
 			raise(RuntimeError('Type not defined'))
 		return self.shift_trace(value_to_shift, type)
 	
-	def crop(self, limits=(0,)):
-		if len(limits) == 1:
-			filter = self.time >= limits[0]
+	def crop(self, limits=(0,), type='t'):
+		if type == 't':
+			to_filter = self.time
+		elif type == 's':
+			to_filter = self.stage_pos
 		else:
-			filter = np.logical_and(self.time >= limits[0], self.time < limits[1])
+			raise(RuntimeError('Type not defined'))
+		if len(limits) == 1:
+			filter = to_filter >= limits[0]
+		else:
+			filter = np.logical_and(to_filter >= limits[0], to_filter < limits[1])
 		n_points = self.time[filter].size
 		out_data = np.zeros((n_points, 4), dtype=np.float_)
 		out_data[:, 0] = self.time[filter]
