@@ -144,7 +144,7 @@ class SingleTrace:
 		return self
 	
 	def zero_trace(self, limits, type='r'):
-		filter = np.logical_and(self.time >= limits[0], self.time < limits[1])
+		filter = np.logical_and(self.time >= limits[0], self.time <= limits[1])
 		if type == 'r':
 			value_to_shift = -np.mean(self.signal_real[filter])
 		elif type == 'i':
@@ -163,7 +163,7 @@ class SingleTrace:
 		if len(limits) == 1:
 			filter = to_filter >= limits[0]
 		else:
-			filter = np.logical_and(to_filter >= limits[0], to_filter < limits[1])
+			filter = np.logical_and(to_filter >= limits[0], to_filter <= limits[1])
 		n_points = self.time[filter].size
 		out_data = np.zeros((n_points, 4), dtype=np.float_)
 		out_data[:, 0] = self.time[filter]
