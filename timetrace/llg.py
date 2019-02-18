@@ -1,10 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import odeint
+from scipy.optimize import curve_fit
 from copy import deepcopy
 
 from timetrace import figsize_double
 from timetrace import figsize_single
+
+#----- Functions -----
 
 # LLG eq. in cartesian components
 def llg_eq(y, t, c_1, c_2, H, D):
@@ -19,6 +22,10 @@ def llg_eq(y, t, c_1, c_2, H, D):
 	dy[1] = -c_1*prod_vett[1] - c_2*(y[2]*prod_vett[0] - prod_vett[2]*y[0])
 	dy[2] = -c_1*prod_vett[2] - c_2*(y[0]*prod_vett[1] - prod_vett[0]*y[1])
 	return dy
+
+# Fit function
+def fit_expFunc(x, a, b, c, d, e):
+	return (np.exp(-x/e)*a*np.cos(2*np.pi*b*(x+c)) + d)
 
 #----- LLG class -----
 class LLG:
@@ -83,6 +90,16 @@ class LLG:
 			fft_phase[:, i] = np.angle(fft_res)
 		
 		return f, fft_amplitude, fft_phase
+	
+	def fit_damping(self, comp, est_freq):
+		y_to_fit = self.m[:, comp]
+		est_amp = (np.amax(y_to_fit) - np.amin(y_to_fit))/2.
+		est_off = np.mean(y_to_fit)
+		est_p0 = (est_amp, est_freq, 0., est_off, 1./est_freq) #this has to be a tuple of 5 elements)
+		popt, pcov = curve_fit(fit_expFunc, self.time, y_to_fit, p0=est_p0, maxfev=400*(len(est_p0)+1)) #maxfev=200*(len(p0_list)+1) is the default
+		perr = np.sqrt(np.diag(pcov))
+		fit_res = fit_expFunc(self.time, *popt)
+		return fit_res, popt, perr
 	
 	def plot(self, size=figsize_single):
 		my_color = ['b', 'r', 'g']
