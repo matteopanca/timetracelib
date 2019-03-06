@@ -3,7 +3,8 @@
 
 import tkinter as tk
 from tkinter import filedialog
-from PyQt5.QtWidgets import QApplication, QFileDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QFileDialog
+from PyQt5.QtCore import QCoreApplication
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
@@ -43,7 +44,22 @@ def get_path_tk(start_path='', filter=(('Data file', '*.dat'),('All files', '*')
 	return filedialog.askopenfilename(initialdir=start_path, title='Select input file', filetypes=filter)
 
 #Get the selected file's path in a string - QT
+# class App(QWidget):
+	# def __init__(self, start_path, filter):
+		# super().__init__()
+		# file_info = QFileDialog.getOpenFileNames(None, 'Select file(s) to open', start_path, filter)
+		# self.file_names = file_info[0]
+
+# def get_path_qt(start_path='', filter='Data file (*.dat);;All files (*)'):
+	# app = QCoreApplication.instance()
+	# if app is None:
+		# app = QApplication(sys.argv)
+	# ex = App(start_path, filter)
+	# return ex.file_names
+
 def get_path_qt(start_path='', filter='Data file (*.dat);;All files (*)'):
-	app = QApplication(sys.argv)
+	app = QCoreApplication.instance()
+	if app is None:
+		app = QApplication(sys.argv)
 	file_name = QFileDialog.getOpenFileName(None, 'Select input file', start_path, filter)
 	return file_name[0]
